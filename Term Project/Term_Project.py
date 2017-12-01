@@ -32,11 +32,6 @@ class RunGame(object):
         del address
         target_surface.unlock()
 
-    def redrawAllStartScreen():
-        pass
-
-    def redrawAllGameOverMode():
-        pass
 
     def run(self):
         while not self._done:
@@ -44,21 +39,21 @@ class RunGame(object):
                 if event.type == pygame.QUIT: 
                     self._done = True 
 
+            #call the appropriate method depending on the game mode 
             while not self.gamePlay.gameOver:
                 if self.gamePlay.mode == "startScreen":
                     self.gamePlay.handleStartScreen(self)
-                    #self.redrawAllStartScreen()
 
                 elif self.gamePlay.mode == "play":
                     self.gamePlay.handlePlayMode(self)
 
             if self.gamePlay.mode == "gameOver":
                 self.gamePlay.handleGameOver(self)
-                #self.redrawAllGameOverMode()
                 if self.gamePlay.playAgain:
                     self.gamePlay = GamePlay()
-                #else:
-                    #handle if the player doesn't want to play again                   
+                else:
+                    #insert closing message 
+                    self._done = True                  
 
 
         self._kinect.close()
