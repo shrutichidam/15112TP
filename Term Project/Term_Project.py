@@ -68,6 +68,7 @@ class RunGame(object):
                 if self.gamePlay.playAgain:
                     self.gamePlay = GamePlay()
                 else:
+                    self.gamePlay.endGame(self)
                     self._done = True                  
 
 

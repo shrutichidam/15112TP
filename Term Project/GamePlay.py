@@ -18,7 +18,7 @@ class GamePlay(object):
     def __init__(self):
         self.mode = "startScreen"
         self.gameOver = False
-        self.playAgain = False
+        self.playAgain = None
         self.guessed = set() #stores letters the player has already guessed 
         self.pointList = [] #stores positions of hand while drawing a letter 
         self.visitedPoints = []
@@ -33,8 +33,7 @@ class GamePlay(object):
         self.wordToGuess = ""
         self.difficultyLevel = -1
         self.guessesLeft = -1
-        self.currentWord = [] #stores the current state of the word that the player has reached 
-       
+        self.currentWord = [] #stores the current state of the word that the player has reached        
     
     def handleStartScreen(self, runGame):
         runGame._screen.fill((99,199,178))
@@ -304,11 +303,24 @@ class GamePlay(object):
         pygame.display.update()
         time.sleep(2)
         self.mode = "instructions"
-    
 
     def displayInstructions(self, runGame):
-        #self.mode = self.chosenMode
-        pass
+        runGame._screen.fill(((99,199,178)))
+        textFont = pygame.font.SysFont("britannic", 40)
+        textLines = ["How To Play: ", "To draw a letter, close your hand and draw in the air.", "Open your nondominant hand when you are done", "drawing.", "Opening your dominant hand will show you where", "you are on the screen.", "Hint: The words can be anything- objects, places, etc."]
+        x = 10
+        y = 50
+        for i in range(len(textLines)):
+            if i in set([0,2,3,6]):
+                line = textFont.render(textLines[i], 1, (0,0,0))
+            else:
+                line = textFont.render(textLines[i], 1, (255,255,255))
+            runGame._screen.blit(line, (x, i*y))
+            pygame.display.update() 
+        
+        time.sleep(10)
+        self.mode = self.chosenMode
+        
 
     def handleClassicMode(self, runGame): 
         repeatImage = 5
@@ -354,7 +366,7 @@ class GamePlay(object):
                                 #Open right hand to move hand without drawing (simulate "picking up your pencil")
                                 if (runGame._kinect._body_frame_bodies.bodies[i].hand_right_state == HandState_Open):
                                     self.pointList = [] #clear the list of points to draw
-                                    if (int(joint_points[PyKinectV2.JointType_HandTipRight].x), int(joint_points[PyKinectV2.JointType_HandTipRight].y)) not in self.allDrawnPoints:
+                                    if not isSimilarPoint((int(joint_points[PyKinectV2.JointType_HandTipRight].x), int(joint_points[PyKinectV2.JointType_HandTipRight].y)),self.allDrawnPoints):
                                         self.visitedPoints.append((int(joint_points[PyKinectV2.JointType_HandTipRight].x), int(joint_points[PyKinectV2.JointType_HandTipRight].y)))
                             else:
                                 #Closed left hand to draw 
@@ -372,7 +384,7 @@ class GamePlay(object):
                                 #Open left hand to move hand without drawing (simulate "picking up your pencil")
                                 if (runGame._kinect._body_frame_bodies.bodies[i].hand_left_state == HandState_Open):
                                     self.pointList = [] #clear the list of points to draw
-                                    if (int(joint_points[PyKinectV2.JointType_HandTipLeft].x), int(joint_points[PyKinectV2.JointType_HandTipLeft].y)) not in self.allDrawnPoints:
+                                    if not isSimilarPoint((int(joint_points[PyKinectV2.JointType_HandTipLeft].x), int(joint_points[PyKinectV2.JointType_HandTipLeft].y)),self.allDrawnPoints):
                                         self.visitedPoints.append((int(joint_points[PyKinectV2.JointType_HandTipLeft].x), int(joint_points[PyKinectV2.JointType_HandTipLeft].y)))
 
         
@@ -451,12 +463,12 @@ class GamePlay(object):
                             print(self.currentWord)
                     self.guessesLeft -= 1
                     self.guessed.add(guessedLetter)
-                if guessedLetter in self.wordToGuess:
-                    self.currentMessage = "Success!"
-                    self.redrawStats(runGame)
-                else:
-                    self.currentMessage = "Wrong guess."
-                    self.redrawStats(runGame)
+                    if guessedLetter in self.wordToGuess:
+                        self.currentMessage = "Success!"
+                        self.redrawStats(runGame)
+                    else:
+                        self.currentMessage = "Wrong guess."
+                        self.redrawStats(runGame)
 
             #all letters have been guessed correctly, so player wins and game is over 
             if "_" not in self.currentWord:
@@ -483,7 +495,7 @@ class GamePlay(object):
     def redrawStats(self, runGame):
         wordText = " ". join(self.currentWord)
         textFont = pygame.font.SysFont("britannic", 60, bold=True)
-        textFont2 = pygame.font.SysFont("britannic", 25) 
+        textFont2 = pygame.font.SysFont("britannic", 28) 
         label = textFont.render(wordText, 1, (0,0,0))
         length = textFont.size(wordText)
         x1 = (runGame._screen.get_width()- length[0])/2
@@ -507,15 +519,15 @@ class GamePlay(object):
         runGame._screen.blit(emptySurface, (750,250))
         runGame._screen.blit(messagetoDraw, (x4,y4))
         pygame.display.update()
-        if self.currentMessage == "Success!" or self.currentMessage == "Failure." or self.currentMessage == "My bad. Try again!":
-            time.sleep(1)
+        if self.currentMessage == "Success!" or self.currentMessage == "Wrong guess." or self.currentMessage == "My bad. Try again!":
+            time.sleep(1.5)
 
 
     def handleAIMode(self, runGame):
         pass
 
     def handleGameOver(self, runGame):
-        if self.chosenMode == "classic":
+        if self.chosenMode == "playClassic":
             if self.win:
                 self.handleWinClassic(runGame)
             else:
@@ -525,27 +537,152 @@ class GamePlay(object):
                 self.handleWinAI(runGame)
             else:
                 self.handleLoseAI(runGame)
-        #do you want to play again? - button 
-        #thanks for playing if not want to play again 
+        handX = -1
+        while self.playAgain == None:
+            #Fill out back buffer surface with frame's data 
+            if runGame._kinect.has_new_color_frame():
+                frame = runGame._kinect.get_last_color_frame()
+                runGame.draw_color_frame(frame, runGame._frame_surface)
+                frame = None
+
+            if runGame._kinect.has_new_body_frame(): 
+                runGame._bodies = runGame._kinect.get_last_body_frame()
+
+                if runGame._bodies is not None: 
+                    for i in range(0, runGame._kinect.max_body_count):
+                        body = runGame._bodies.bodies[i]
+          
+                        if not body.is_tracked: 
+                            continue
+                        joints = body.joints 
+                        #convert the points in 3d space to a point on the screen  
+                        joint_points = runGame._kinect.body_joints_to_color_space(joints)
+                        #open dominant hand in area of screen corresponding to difficulty level 
+                        if self.dominantHand == "Right":
+                            if joints[PyKinectV2.JointType_HandTipRight].TrackingState != PyKinectV2.TrackingState_NotTracked and runGame._kinect._body_frame_bodies.bodies[i].hand_right_state == HandState_Open:
+                                handX = joint_points[PyKinectV2.JointType_HandRight].x
+                            if handX != -1:
+                                if 0 <= handX <= runGame.screen_width//2:
+                                    self.playAgain = True
+                                else:
+                                    self.playAgain = False
+                        else:
+                            if joints[PyKinectV2.JointType_HandTipLeft].TrackingState != PyKinectV2.TrackingState_NotTracked and runGame._kinect._body_frame_bodies.bodies[i].hand_left_state == HandState_Open:
+                                handX = joint_points[PyKinectV2.JointType_HandLeft].x
+                            if handX != -1:
+                                if 0 <= handX <= runGame.screen_width//2:
+                                    self.playAgain = True
+                                else:
+                                    self.playAgain = False
+            
+            #draw lines to signify boundaries of areas to choose from 
+            pygame.draw.line(runGame._frame_surface, (99,199,178), (runGame.screen_width//2, 0), (runGame.screen_width//2, runGame.screen_height), 25)
+            modeFont = pygame.font.SysFont("britannic", 50)
+            option1 = modeFont.render("Play Again", 1, (0,0,0), (255,255,255))
+            option2 = modeFont.render("Quit", 1, (0,0,0), (255,255,255))
+            length1 = modeFont.size("Play Again")
+            length2 = modeFont.size("Quit")
+            y = (runGame._screen.get_height()- length1[1])/2
+            textFont = pygame.font.SysFont("britannic", 29)
+            label = textFont.render("Move your hand to the option you want to choose. Then, open your hand.", 1, (0,0,0), (255,255,255))
+            length3 = textFont.size("Move your hand to the option you want to choose. Then, open your hand.")
+            x2 = (runGame._screen.get_width()- length3[0])/2
+            y2 = 475
+            # --- copy back buffer surface pixels to the screen, resize it if needed and keep aspect ratio
+            # --- (screen size may be different from Kinect's color frame size) 
+            h_to_w = float(runGame._frame_surface.get_height()) / runGame._frame_surface.get_width()
+            target_height = int(h_to_w * runGame._screen.get_width())
+            surface_to_draw = pygame.transform.scale(runGame._frame_surface, (runGame._screen.get_width(), target_height));
+            runGame._screen.blit(surface_to_draw, (0,0))
+            surface_to_draw = None
+            runGame._screen.blit(label, (x2,y2))
+            runGame._screen.blit(option1, ((runGame.screen_width//4 - length1[0])//2 , y))
+            runGame._screen.blit(option2, ((3*runGame.screen_width//4 - length2[0])//2, y))
+            pygame.display.update()
+            runGame._clock.tick(60)        
 
     def handleWinClassic(self, runGame):
-        pass
-        #you took ___ num guesses to guess the word correctly! 
+        runGame._screen.fill(((99,199,178)))
+        textFont = pygame.font.SysFont("britannic", 70)
+        textLines = ["You Win!", "It took you", str(self.guessesLeft-len(self.guessed)), "guesses!"]
+        height = 0
+        for j in range(len(textLines)):
+            height += textFont.size(textLines[j])[1]
+        y =  (runGame._screen.get_height()- height)/2
+
+        for i in range(len(textLines)):
+            if i == 2:
+                line = textFont.render(textLines[i], 1, (255,255,255))
+            else:
+                line = textFont.render(textLines[i], 1, (0,0,0))
+            x = (runGame._screen.get_width()- textFont.size(textLines[i])[0])/2
+            runGame._screen.blit(line, (x, y + i*textFont.size(textLines[i])[1]))
+            pygame.display.update() 
+        time.sleep(3)
     
     def handleLoseClassic(self, runGame):
-        #better luck next time! the word was ______
-        pass
+        runGame._screen.fill(((99,199,178)))
+        textFont = pygame.font.SysFont("britannic", 70)
+        textLines = ["Better Luck Next Time!", "The word was:", self.wordToGuess]
+        height = 0
+        for j in range(len(textLines)):
+            height += textFont.size(textLines[j])[1]
+        y =  (runGame._screen.get_height()- height)/2
+        for i in range(len(textLines)):
+            if i == 2:
+                line = textFont.render(textLines[i], 1, (255,255,255))
+            else:
+                line = textFont.render(textLines[i], 1, (0,0,0))
+            x = (runGame._screen.get_width()- textFont.size(textLines[i])[0])/2
+            runGame._screen.blit(line, (x, y*i + 50))
+            pygame.display.update() 
+        time.sleep(3)
 
     def handleWinAI(self, runGame):
-        pass
+        runGame._screen.fill(((99,199,178)))
+        textFont = pygame.font.SysFont("britannic", 70)
+        text = "You beat the computer!"
+        x = (runGame._screen.get_width()- textFont.size(text)[0])/2
+        y =  (runGame._screen.get_height()- textFont.size(text)[1])/2
+        line = textFont.render(text, 1, (255,255,255))
+        runGame._screen.blit(line, (x, y))
+        pygame.display.update() 
+        time.sleep(3)
 
     def handleLoseAI(self, runGame):
-        pass
+        runGame._screen.fill(((99,199,178)))
+        textFont = pygame.font.SysFont("britannic", 70)
+        textLines = ["The Computer Beat You!", "The word was:", self.wordToGuess]
+        height = 0
+        for j in range(len(textLines)):
+            height += textFont.size(textLines[j])[1]
+        y =  (runGame._screen.get_height()- height)/2
+        for i in range(len(textLines)):
+            if i == 2:
+                line = textFont.render(textLines[i], 1, (255,255,255))
+            else:
+                line = textFont.render(textLines[i], 1, (0,0,0))
+            x = (runGame._screen.get_width()- textFont.size(textLines[i])[0])/2
+            runGame._screen.blit(line, (x, y*i + 50))
+            pygame.display.update() 
+        time.sleep(3)
+
+    def endGame(self, runGame):
+        runGame._screen.fill(((99,199,178)))
+        textFont = pygame.font.SysFont("britannic", 70)
+        text = "Thanks for Playing!"
+        x = (runGame._screen.get_width()- textFont.size(text)[0])/2
+        y =  (runGame._screen.get_height()- textFont.size(text)[1])/2
+        line = textFont.render(text, 1, (255,255,255))
+        runGame._screen.blit(line, (x, y))
+        pygame.display.update() 
+        time.sleep(2)
 
 
 def isSimilarPoint(point, pointSet):
+    margin = 30
     for p in pointSet:
-        if point[0] - 25 <= p[0] <= point[0] + 25 and point[1] - 25 <= p[1] <= point[1] + 25:
+        if point[0] - margin <= p[0] <= point[0] + margin and point[1] - margin <= p[1] <= point[1] + margin:
             return True
     return False
 
