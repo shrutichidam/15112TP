@@ -17,6 +17,7 @@ class RunGame(object):
         self.screen_height = 1080
         self._clock = pygame.time.Clock()
         self._screen = pygame.display.set_mode((self.screen_width//2,self.screen_height//2), pygame.HWSURFACE|pygame.DOUBLEBUF, 32)
+        pygame.display.set_caption("Kinect AIr Word Game")
         self._done = False
         self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body)
         self._frame_surface = pygame.Surface((self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height), 0, 32)
@@ -44,15 +45,29 @@ class RunGame(object):
                 if self.gamePlay.mode == "startScreen":
                     self.gamePlay.handleStartScreen(self)
 
-                elif self.gamePlay.mode == "play":
-                    self.gamePlay.handlePlayMode(self)
+                elif self.gamePlay.mode == "chooseHand":
+                    self.gamePlay.chooseHand(self)
+
+                elif self.gamePlay.mode == "chooseDifficulty":
+                    self.gamePlay.chooseDifficulty(self)
+
+                elif self.gamePlay.mode == "chooseMode":
+                    self.gamePlay.chooseMode(self)
+
+                elif self.gamePlay.mode == "instructions":
+                    self.gamePlay.displayInstructions(self)
+
+                elif self.gamePlay.mode == "playClassic":
+                    self.gamePlay.handleClassicMode(self)
+
+                elif self.gamePlay.mode == "playAI":
+                    self.gamePlay.handleAIMode(self)
 
             if self.gamePlay.mode == "gameOver":
                 self.gamePlay.handleGameOver(self)
                 if self.gamePlay.playAgain:
                     self.gamePlay = GamePlay()
                 else:
-                    #insert closing message 
                     self._done = True                  
 
 
