@@ -1,3 +1,4 @@
+#The base code for what should run when the game runs (basic game loop) 
 from pykinect2 import PyKinectV2, PyKinectRuntime
 from pykinect2.PyKinectV2 import *
 
@@ -13,16 +14,17 @@ from GamePlay import *
 class RunGame(object):
     def __init__(self):
         pygame.init()
+        #start off with the basic aspects of the instacne 
         self.screen_width = 1920
         self.screen_height = 1080
         self._clock = pygame.time.Clock()
         self._screen = pygame.display.set_mode((self.screen_width//2,self.screen_height//2), pygame.HWSURFACE|pygame.DOUBLEBUF, 32)
-        pygame.display.set_caption("Kinect AIr Word Game")
+        pygame.display.set_caption("AIr Words")
         self._done = False
         self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body)
         self._frame_surface = pygame.Surface((self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height), 0, 32)
         self._bodies = None
-        self.gamePlay = GamePlay()
+        self.gamePlay = GamePlay() #start the other game loop eventually 
         self.drawingSurface = pygame.Surface((self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height), 0, 32)
         self.drawingSurface.fill((255,255,255))
 
@@ -34,6 +36,7 @@ class RunGame(object):
         target_surface.unlock()
 
 
+    #basis for the game loop, on the outer level 
     def run(self):
         while not self._done:
             for event in pygame.event.get(): 
@@ -63,13 +66,15 @@ class RunGame(object):
                 elif self.gamePlay.mode == "playAI":
                     self.gamePlay.handleAIMode(self)
 
+            #once game over, handle these events once 
             if self.gamePlay.mode == "gameOver":
                 self.gamePlay.handleGameOver(self)
-                if self.gamePlay.playAgain:
-                    self.gamePlay = GamePlay()
-                else:
-                    self.gamePlay.endGame(self)
-                    self._done = True                  
+                if self.gamePlay.playAgain != None:
+                    if self.gamePlay.playAgain:
+                        self.gamePlay = GamePlay()
+                    else:
+                        self.gamePlay.endGame(self)
+                        self._done = True                  
 
 
         self._kinect.close()
