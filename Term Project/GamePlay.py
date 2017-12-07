@@ -930,7 +930,7 @@ class GamePlay(object):
             runGame._clock.tick(60)        
             self.playAgain = play
 
-    #displays winning text if player wins in Classic-AI$ modes.
+    #displays winning text if player wins in Classic mode.
     def handleWinClassic(self, runGame):
         runGame._screen.fill(((99,199,178)))
         textFont = pygame.font.SysFont("britannic", 70)
@@ -1000,7 +1000,7 @@ class GamePlay(object):
             pygame.display.update() 
         time.sleep(3)
 
-    #called if player doesn't want to play again; displays text about thanks for playing 
+    #called if player doesn't want to play again; displays concluding text  
     def endGame(self, runGame):
         runGame._screen.fill(((99,199,178)))
         textFont = pygame.font.SysFont("britannic", 70)
