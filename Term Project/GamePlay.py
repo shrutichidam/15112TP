@@ -205,11 +205,9 @@ class GamePlay(object):
             pygame.display.update()
             runGame._clock.tick(60)
 
-        print(self.difficultyLevel)
         self.wordToGuess = GamePlay.dictionary.words[self.difficultyLevel][random.randint(0, len(GamePlay.dictionary.words[self.difficultyLevel]) - 1)]
-        print(self.wordToGuess)
         self.currentWord = ["_"] * len(self.wordToGuess)
-        self.guessesLeft = self.difficultyLevel * 4 
+        self.guessesLeft = self.difficultyLevel * 5
         runGame._screen.fill(((99,199,178)))
         textFont = pygame.font.SysFont("britannic", 50)
         label = textFont.render("Almost there! Now let's choose a mode.", 1, (0,0,0))
@@ -315,18 +313,32 @@ class GamePlay(object):
 
     def displayInstructions(self, runGame):
         runGame._screen.fill(((99,199,178)))
-        textFont = pygame.font.SysFont("britannic", 40)
-        textLines = ["How To Play: ", "To draw a letter, close your hand and draw in the air.", "Open your nondominant hand when you are done", "drawing.", "Opening your dominant hand will show you where", "you are on the screen.", "Hint: The words can be anything- objects, places, etc."]
-        x = 10
-        y = 50
+        textFont = pygame.font.SysFont("robotocondensed", 40)
+        textLines = ["How To Play: ", "To draw a letter, close your hand and draw in the air.", \
+            "When you are done drawing, open your nondominant hand.", "Opening your dominant hand will show you where", "you are on the screen.", "Hint: The words can be anything- objects, places, etc."]
+        y = 60
         for i in range(len(textLines)):
-            if i in set([0,2,3,6]):
-                line = textFont.render(textLines[i], 1, (0,0,0))
-            else:
-                line = textFont.render(textLines[i], 1, (255,255,255))
-            runGame._screen.blit(line, (x, i*y))
+            line = textFont.render(textLines[i], 1, (0,0,0))
+            x = (runGame._screen.get_width()- textFont.size(textLines[i])[0])/2
+            runGame._screen.blit(line, (x, i*y + 50))
             pygame.display.update() 
-        
+        time.sleep(15)
+
+        runGame._screen.fill(((99,199,178)))
+        textFont = pygame.font.SysFont("robotocondensed", 40)
+        textLines = ["Tips: ", "To erase your drawing, make the lasso gesture.", \
+            "This is done with a closed fist with the middle", "and index fingers out together.", "For best results, stand about 1-2 m away from the Kinect.", "To Win:" ]
+        if self.chosenMode == "playClassic":
+            textLines.append("Guess the word within the number of guesses allowed!")
+        else:
+            textLines.append("Beat the computer by guessing the word first!") 
+        textLines.append("Have Fun! :)")
+        y = 60
+        for i in range(len(textLines)):
+            line = textFont.render(textLines[i], 1, (0,0,0))
+            x = (runGame._screen.get_width()- textFont.size(textLines[i])[0])/2
+            runGame._screen.blit(line, (x, i*y + 50))
+            pygame.display.update() 
         time.sleep(10)
         self.mode = self.chosenMode
         
@@ -358,7 +370,13 @@ class GamePlay(object):
                             joints = body.joints 
                             #convert the points in 3d space to a point on the screen  
                             joint_points = runGame._kinect.body_joints_to_color_space(joints)
-                                
+                            if runGame._kinect._body_frame_bodies.bodies[i].hand_right_state == HandState_Lasso and runGame._kinect._body_frame_bodies.bodies[i].hand_left_state == HandState_Lasso:
+                                self.pointList = []
+                                self.allDrawnPoints = set()
+                                self.visitedPoints = []
+                                runGame.drawingSurface.fill((255,255,255))
+                                runGame._screen.blit(runGame.drawingSurface, (0,0))
+
                             if self.dominantHand == "Right":
                                 #Closed right hand to draw 
                                 if joints[PyKinectV2.JointType_HandTipRight].TrackingState != PyKinectV2.TrackingState_NotTracked and runGame._kinect._body_frame_bodies.bodies[i].hand_right_state == HandState_Closed:
@@ -377,6 +395,13 @@ class GamePlay(object):
                                     self.pointList = [] #clear the list of points to draw
                                     if not isSimilarPoint((int(joint_points[PyKinectV2.JointType_HandTipRight].x), int(joint_points[PyKinectV2.JointType_HandTipRight].y)),self.allDrawnPoints):
                                         self.visitedPoints.append((int(joint_points[PyKinectV2.JointType_HandTipRight].x), int(joint_points[PyKinectV2.JointType_HandTipRight].y)))
+
+                                if runGame._kinect._body_frame_bodies.bodies[i].hand_right_state == HandState_Lasso:
+                                    self.pointList = []
+                                    self.allDrawnPoints = set()
+                                    self.visitedPoints = []
+                                    runGame.drawingSurface.fill((255,255,255))
+                                    runGame._screen.blit(runGame.drawingSurface, (0,0))
                             else:
                                 #Closed left hand to draw 
                                 if joints[PyKinectV2.JointType_HandTipLeft].TrackingState != PyKinectV2.TrackingState_NotTracked and runGame._kinect._body_frame_bodies.bodies[i].hand_left_state == HandState_Closed:
@@ -395,6 +420,14 @@ class GamePlay(object):
                                     self.pointList = [] #clear the list of points to draw
                                     if not isSimilarPoint((int(joint_points[PyKinectV2.JointType_HandTipLeft].x), int(joint_points[PyKinectV2.JointType_HandTipLeft].y)),self.allDrawnPoints):
                                         self.visitedPoints.append((int(joint_points[PyKinectV2.JointType_HandTipLeft].x), int(joint_points[PyKinectV2.JointType_HandTipLeft].y)))
+
+                                if runGame._kinect._body_frame_bodies.bodies[i].hand_right_state == HandState_Lasso:
+                                    self.pointList = []
+                                    self.allDrawnPoints = set()
+                                    self.visitedPoints = []
+                                    runGame.drawingSurface.fill((255,255,255))
+                                    runGame._screen.blit(runGame.drawingSurface, (0,0))
+
 
         
                 if len(self.visitedPoints) > 1:
@@ -420,14 +453,14 @@ class GamePlay(object):
                 runGame._screen.fill((255,255,255))
                 runGame._screen.blit(surface_to_draw, (0,0))
                 surface_to_draw = None  
-                self.currentMessage = "Your Turn!"
-                self.redrawStats(runGame)
+                self.currentMessage = "Draw a Letter!"
+                self.redrawStatsClassic(runGame)
 
                 pygame.display.update()
                 runGame._clock.tick(60)
 
             self.currentMessage = "Please Wait!"
-            self.redrawStats(runGame)
+            self.redrawStatsClassic(runGame)
             factor = 0.375
             offset = 50
             #save the drawing with a unique filename (the timestamp) 
@@ -459,7 +492,7 @@ class GamePlay(object):
                 if guessedLetter == "Error" or not guessedLetter.isalpha():
                     print("Try Again")
                     self.currentMessage = "My bad. Try again!"
-                    self.redrawStats(runGame)
+                    self.redrawStatsClassic(runGame)
                 else:
                     print(guessedLetter)
                     guessedLetter = guessedLetter.lower().strip() #standardize the letter to be lowercase 
@@ -469,15 +502,14 @@ class GamePlay(object):
                     for i in range(len(self.wordToGuess)):
                         if self.wordToGuess[i] == guessedLetter:
                             self.currentWord[i] = guessedLetter
-                            print(self.currentWord)
                     self.guessesLeft -= 1
                     self.guessed.add(guessedLetter)
                     if guessedLetter in self.wordToGuess:
                         self.currentMessage = "Success!"
-                        self.redrawStats(runGame)
+                        self.redrawStatsClassic(runGame)
                     else:
                         self.currentMessage = "Wrong guess."
-                        self.redrawStats(runGame)
+                        self.redrawStatsClassic(runGame)
 
             #all letters have been guessed correctly, so player wins and game is over 
             if "_" not in self.currentWord:
@@ -501,19 +533,22 @@ class GamePlay(object):
             runGame.drawingSurface.fill((255,255,255))
             runGame._screen.blit(runGame.drawingSurface, (0,0))
 
-    def redrawStats(self, runGame):
+    def redrawStatsClassic(self, runGame):
         wordText = " ". join(self.currentWord)
-        textFont = pygame.font.SysFont("britannic", 60, bold=True)
-        textFont2 = pygame.font.SysFont("britannic", 28) 
+        textFont = pygame.font.SysFont("robotocondensed", 60)
+        textFont2 = pygame.font.SysFont("robotocondensed", 32) 
         label = textFont.render(wordText, 1, (0,0,0))
         length = textFont.size(wordText)
         x1 = (runGame._screen.get_width()- length[0])/2
         y1 = 400
-        guessedLetters = ", ".join(self.guessed)
+        guessed = list(self.guessed)
+        for i in range(len(guessed)):
+            guessed[i] = guessed[i].upper()
+        guessedLetters = ", ".join(guessed)
         guessedLetters = "Letters Guessed: " + guessedLetters
         label2 = textFont2.render(guessedLetters, 1, (0,0,0))
         x2 = 20
-        y2 = 500
+        y2 = 475
         label3 = textFont2.render("Guesses Left: " + str(self.guessesLeft), 1, (0,0,0))
         x3 = 750
         y3 = 50
@@ -562,7 +597,7 @@ class GamePlay(object):
                                 joints = body.joints 
                                 #convert the points in 3d space to a point on the screen  
                                 joint_points = runGame._kinect.body_joints_to_color_space(joints)
-                                
+
                                 if self.dominantHand == "Right":
                                     #Closed right hand to draw 
                                     if joints[PyKinectV2.JointType_HandTipRight].TrackingState != PyKinectV2.TrackingState_NotTracked and runGame._kinect._body_frame_bodies.bodies[i].hand_right_state == HandState_Closed:
@@ -581,6 +616,13 @@ class GamePlay(object):
                                         self.pointList = [] #clear the list of points to draw
                                         if not isSimilarPoint((int(joint_points[PyKinectV2.JointType_HandTipRight].x), int(joint_points[PyKinectV2.JointType_HandTipRight].y)),self.allDrawnPoints):
                                             self.visitedPoints.append((int(joint_points[PyKinectV2.JointType_HandTipRight].x), int(joint_points[PyKinectV2.JointType_HandTipRight].y)))
+
+                                    if runGame._kinect._body_frame_bodies.bodies[i].hand_right_state == HandState_Lasso:
+                                        self.pointList = []
+                                        self.allDrawnPoints = set()
+                                        self.visitedPoints = []
+                                        runGame.drawingSurface.fill((255,255,255))
+                                        runGame._screen.blit(runGame.drawingSurface, (0,0))
                                 else:
                                     #Closed left hand to draw 
                                     if joints[PyKinectV2.JointType_HandTipLeft].TrackingState != PyKinectV2.TrackingState_NotTracked and runGame._kinect._body_frame_bodies.bodies[i].hand_left_state == HandState_Closed:
@@ -599,6 +641,13 @@ class GamePlay(object):
                                         self.pointList = [] #clear the list of points to draw
                                         if not isSimilarPoint((int(joint_points[PyKinectV2.JointType_HandTipLeft].x), int(joint_points[PyKinectV2.JointType_HandTipLeft].y)),self.allDrawnPoints):
                                             self.visitedPoints.append((int(joint_points[PyKinectV2.JointType_HandTipLeft].x), int(joint_points[PyKinectV2.JointType_HandTipLeft].y)))
+
+                                    if runGame._kinect._body_frame_bodies.bodies[i].hand_left_state == HandState_Lasso:
+                                        self.pointList = []
+                                        self.allDrawnPoints = set()
+                                        self.visitedPoints = []
+                                        runGame.drawingSurface.fill((255,255,255))
+                                        runGame._screen.blit(runGame.drawingSurface, (0,0))
 
         
                     if len(self.visitedPoints) > 1:
@@ -624,14 +673,14 @@ class GamePlay(object):
                     runGame._screen.fill((255,255,255))
                     runGame._screen.blit(surface_to_draw, (0,0))
                     surface_to_draw = None  
-                    self.currentMessage = "Guess a Letter!"
-                    self.redrawStats(runGame)
+                    self.currentMessage = "Your Turn!"
+                    self.redrawStatsAI(runGame)
 
                     pygame.display.update()
                     runGame._clock.tick(60)
 
                 self.currentMessage = "Please Wait!"
-                self.redrawStats(runGame)
+                self.redrawStatsAI(runGame)
                 factor = 0.375
                 offset = 50
                 #save the drawing with a unique filename (the timestamp) 
@@ -663,7 +712,7 @@ class GamePlay(object):
                     if guessedLetter == "Error" or not guessedLetter.isalpha():
                         print("Try Again")
                         self.currentMessage = "My bad. Try again!"
-                        self.redrawStats(runGame)
+                        self.redrawStatsAI(runGame)
                     else:
                         print(guessedLetter)
                         guessedLetter = guessedLetter.lower().strip() #standardize the letter to be lowercase 
@@ -674,14 +723,15 @@ class GamePlay(object):
                             if self.wordToGuess[i] == guessedLetter:
                                 self.currentWord[i] = guessedLetter
                                 print(self.currentWord)
-                        self.guessesLeft -= 1
                         self.guessed.add(guessedLetter)
                         if guessedLetter in self.wordToGuess:
                             self.currentMessage = "Success!"
-                            self.redrawStats(runGame)
+                            self.redrawStatsAI(runGame)
                         else:
                             self.currentMessage = "Wrong guess."
-                            self.redrawStats(runGame)
+                            self.redrawStatsAI(runGame)
+                        #Now it becomes the computer's turn, only if text recogniition succeeds 
+                        self.turn = 1
 
                 #all letters have been guessed correctly, so player wins and game is over 
                 if "_" not in self.currentWord:
@@ -693,23 +743,26 @@ class GamePlay(object):
                 self.pointList = []
                 self.allDrawnPoints = set()
                 self.visitedPoints = []
-                #Now it becomes the computer's turn 
-                self.turn = 1
                 #clear the screen 
                 runGame.drawingSurface.fill((255,255,255))
                 runGame._screen.blit(runGame.drawingSurface, (0,0))
 
             #Computer's turn if self.turn = 1
             else:
-                print("computer")
                 guess = self.AI.guessLetter()
                 print(guess)
+                self.currentMessage = "AI's Turn"
+                self.redrawStatsAI(runGame)
                 self.AI.lettersGuessed.add(guess)
                 if guess in self.wordToGuess:
                     for i in range(len(self.wordToGuess)):
                         if self.wordToGuess[i] == guess:
                             self.AI.wordGuessed =self.AI.wordGuessed[:i] + guess + self.AI.wordGuessed[i+1:]
-                print(self.AI.wordGuessed)
+                            self.AI.wordToDisplay[i] = "*"
+                    self.currentMessage = "AI: Correct!"
+                else:
+                    self.currentMessage = "AI: Wrong!"
+                    self.redrawStatsAI(runGame)
                 if self.AI.isDoneGuessing():
                     self.win = False
                     self.AI.done = True
@@ -718,6 +771,48 @@ class GamePlay(object):
 
                 self.turn = 0
 
+    def redrawStatsAI(self, runGame):
+        font1 = pygame.font.SysFont("britannic", 50, bold=True)
+        playerText = " ".join(self.currentWord)
+        playerText = "You: " + playerText
+        aiText = " ".join(self.AI.wordToDisplay)
+        aiText = "  AI: " + aiText
+        textX = 10
+        textY1 = 410
+        textY2 = 470
+        word1 = font1.render(playerText, 1, (0,0,0), (99,199,178))
+        word2 = font1.render(aiText, 1, (0,0,0))
+
+        font2 = pygame.font.SysFont("robotocondensed", 28)
+        font3 = pygame.font.SysFont("robotocondensed", 40)
+        font4 = pygame.font.SysFont("robotocondensed", 28, bold=True)
+        guessedLetters = list(self.guessed)
+        guessedLetters.insert(0, "Letters Guessed:")
+        x2 = 770
+        guessedY = 30
+        blankSurface = pygame.Surface((240,540))
+        blankSurface.fill((255,255,255))
+        runGame._screen.blit(blankSurface, (720,0))
+        for i in range(len(guessedLetters)):
+            line = font3.render(guessedLetters[i].upper(), 1, (0,0,0))
+            if i == 0:
+                line = font2.render(guessedLetters[i], 1, (0,0,0))
+                runGame._screen.blit(line, (x2, guessedY*i + 25))
+            elif i % 2 == 0:
+                runGame._screen.blit(line, (x2 + 50, guessedY*(i-1) + 25))
+            else:
+                runGame._screen.blit(line, (x2, guessedY*i + 25))
+
+        message = font4.render(self.currentMessage, 1, (0,128,128))
+        x4 = 750
+        y4 = 500
+        runGame._screen.blit(word1, (textX, textY1))
+        runGame._screen.blit(word2, (textX, textY2))
+        runGame._screen.blit(message, (x4,y4))
+        pygame.display.update()
+        if self.currentMessage == "Success!" or self.currentMessage == "Wrong guess." or self.currentMessage == "My bad. Try again!" or self.currentMessage == "AI's Turn" or \
+           self.currentMessage == "My bad. Try again!" or self.currentMessage == "AI: Correct!" or self.currentMessage == "AI: Wrong!":
+            time.sleep(1.5)
 
     def handleGameOver(self, runGame):
         if self.chosenMode == "playClassic":
@@ -731,7 +826,8 @@ class GamePlay(object):
             else:
                 self.handleLoseAI(runGame)
         handX = -1
-        while self.playAgain == None:
+        play = None
+        while play == None:
             #Fill out back buffer surface with frame's data 
             if runGame._kinect.has_new_color_frame():
                 frame = runGame._kinect.get_last_color_frame()
@@ -756,25 +852,25 @@ class GamePlay(object):
                                 handX = joint_points[PyKinectV2.JointType_HandRight].x
                             if handX != -1:
                                 if 0 <= handX <= runGame.screen_width//2:
-                                    self.playAgain = True
+                                    play = True
                                 else:
-                                    self.playAgain = False
+                                    play = False
                         else:
                             if joints[PyKinectV2.JointType_HandTipLeft].TrackingState != PyKinectV2.TrackingState_NotTracked and runGame._kinect._body_frame_bodies.bodies[i].hand_left_state == HandState_Open:
                                 handX = joint_points[PyKinectV2.JointType_HandLeft].x
                             if handX != -1:
                                 if 0 <= handX <= runGame.screen_width//2:
-                                    self.playAgain = True
+                                    play = True
                                 else:
-                                    self.playAgain = False
+                                    play = False
             
-            #draw lines to signify boundaries of areas to choose from 
+            #draw line to signify boundaries of areas to choose from 
             pygame.draw.line(runGame._frame_surface, (99,199,178), (runGame.screen_width//2, 0), (runGame.screen_width//2, runGame.screen_height), 25)
-            modeFont = pygame.font.SysFont("britannic", 50)
-            option1 = modeFont.render("Play Again", 1, (0,0,0), (255,255,255))
-            option2 = modeFont.render("Quit", 1, (0,0,0), (255,255,255))
-            length1 = modeFont.size("Play Again")
-            length2 = modeFont.size("Quit")
+            optionFont = pygame.font.SysFont("britannic", 50)
+            option1 = optionFont.render("Play Again", 1, (0,0,0), (255,255,255))
+            option2 = optionFont.render("Quit", 1, (0,0,0), (255,255,255))
+            length1 = optionFont.size("Play Again")
+            length2 = optionFont.size("Quit")
             y = (runGame._screen.get_height()- length1[1])/2
             textFont = pygame.font.SysFont("britannic", 29)
             label = textFont.render("Move your hand to the option you want to choose. Then, open your hand.", 1, (0,0,0), (255,255,255))
@@ -793,6 +889,7 @@ class GamePlay(object):
             runGame._screen.blit(option2, ((3*runGame.screen_width//4 - length2[0])//2, y))
             pygame.display.update()
             runGame._clock.tick(60)        
+            self.playAgain = play
 
     def handleWinClassic(self, runGame):
         runGame._screen.fill(((99,199,178)))
