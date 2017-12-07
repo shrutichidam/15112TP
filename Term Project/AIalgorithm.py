@@ -1,10 +1,11 @@
+import random
 class AI(object):
     def __init__(self, dictionary, lengthOfWord):
        self.dictionary = dictionary
        self.wordLength = lengthOfWord
        self.lettersGuessed = set()
        self.wordGuessed = "?" * self.wordLength
-       self.numGuesses = 0 
+       self.done = False
 
     def getSimilarWords(self):
         simWords = []
@@ -42,10 +43,9 @@ class AI(object):
 
     def guessLetter(self):
         similarWords = self.getSimilarWords()
-        possibleGuesses = getHighestFrequencies(similarWords)
+        possibleGuesses = self.getHighestFrequencies(similarWords)
         guess = possibleGuesses.pop(random.randint(0,len(possibleGuesses)-1))
         self.lettersGuessed.add(guess)
-        self.numGuesses += 1
         return guess
 
     #returns True when the wordToGuess is complete
